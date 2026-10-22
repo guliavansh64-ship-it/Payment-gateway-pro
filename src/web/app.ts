@@ -43,13 +43,16 @@ export function createApp(options: { viewsDir?: string; publicDir?: string } = {
           'font-src': ["'self'"],
           'connect-src': ["'self'"],
           'form-action': ["'self'"],
-          'frame-ancestors': ["'none'"],
+          'frame-ancestors': config.resolvedFrameAncestors,
           'base-uri': ["'self'"],
           'object-src': ["'none'"],
           'upgrade-insecure-requests': config.isProduction ? [] : null,
         },
       },
       crossOriginEmbedderPolicy: false,
+      // frame-ancestors is the modern control; X-Frame-Options is disabled
+      // outside production so an explicit CSP override can allow embedding.
+      xFrameOptions: config.isProduction ? { action: 'deny' } : false,
       referrerPolicy: { policy: 'same-origin' },
       hsts: config.isProduction ? { maxAge: 31_536_000, includeSubDomains: true } : false,
     }),

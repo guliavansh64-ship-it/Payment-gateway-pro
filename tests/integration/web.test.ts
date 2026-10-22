@@ -135,6 +135,11 @@ describe('customer payment page', () => {
     expect(page.text).toContain('₹249.50');
     expect(page.text).toContain('/qr.png?t=');
     expect(page.text).toContain('Check payment status');
+    // The UPI intent link must be escaped exactly once by EJS; double escaping
+    // opens a URI with a literal "&amp;" in its parameters.
+    const upiHref = /href="(upi:\/\/pay\?[^"]*)"/.exec(page.text)?.[1] ?? '';
+    expect(upiHref).toContain('&amp;');
+    expect(upiHref).not.toContain('&amp;amp;');
     // It never asks for a credential it must not collect.
     expect(page.text.toLowerCase()).not.toContain('enter your upi pin');
     expect(page.text).toContain('never ask for your UPI PIN');

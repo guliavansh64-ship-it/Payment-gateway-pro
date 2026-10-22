@@ -14,14 +14,14 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
 export function sessionCookieOptions(): {
   httpOnly: boolean;
   secure: boolean;
-  sameSite: 'lax' | 'strict';
+  sameSite: 'lax' | 'strict' | 'none';
   path: string;
   maxAge: number;
 } {
   return {
     httpOnly: true,
     secure: getConfig().cookieSecure,
-    sameSite: 'lax',
+    sameSite: getConfig().cookieSameSite,
     path: '/',
     maxAge: SESSION_TTL_MS,
   };
@@ -30,7 +30,7 @@ export function sessionCookieOptions(): {
 export function csrfCookieOptions(): {
   httpOnly: boolean;
   secure: boolean;
-  sameSite: 'lax' | 'strict';
+  sameSite: 'lax' | 'strict' | 'none';
   path: string;
   maxAge: number;
 } {

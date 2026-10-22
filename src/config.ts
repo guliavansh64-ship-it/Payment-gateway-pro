@@ -37,6 +37,12 @@ const envSchema = z.object({
   SESSION_SECRET: z.string().min(32),
   TOKEN_ENCRYPTION_KEYS: z.string().min(1),
   COOKIE_SECURE: boolFromString.default('false'),
+  // 'none' (with Secure) is only needed when the app is embedded cross-site,
+  // e.g. inside a preview pane. Production stays 'lax'.
+  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  // Optional CSP frame-ancestors override (comma separated). Defaults to 'none'
+  // in production and 'self' elsewhere.
+  CSP_FRAME_ANCESTORS: optionalString,
 
   MAX_ORDER_AMOUNT_PAISE: intFromString(100, 100_000_000).default('10000000'),
   DEFAULT_ORDER_EXPIRY_MINUTES: intFromString(2, 1440).default('15'),
@@ -68,6 +74,16 @@ const envSchema = z.object({
 });
 
 export type AppConfig = ReturnType<typeof buildConfig>;
+
+/** CSP frame-ancestors sources. Empty override → 'none' in production, 'self' otherwise. */
+function parseFrameAncestors(override: string | undefined, isProduction: boolean): string[] {
+  const sources = (override ?? '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (sources.length > 0) return sources;
+  return isProduction ? ["'none'"] : ["'self'"];
+}
 
 function buildConfig(env: z.infer<typeof envSchema>) {
   const isProduction = env.NODE_ENV === 'production';
@@ -111,6 +127,10 @@ function buildConfig(env: z.infer<typeof envSchema>) {
     sessionSecret: env.SESSION_SECRET,
     encryptionKeys: keys,
     cookieSecure: env.COOKIE_SECURE,
+    cookieSameSite: env.COOKIE_SAMESITE,
+    // frame-ancestors: explicit override wins; otherwise deny in production and
+    // allow same-origin embedding only.
+    resolvedFrameAncestors: parseFrameAncestors(env.CSP_FRAME_ANCESTORS, isProduction),
     maxOrderAmountPaise: env.MAX_ORDER_AMOUNT_PAISE,
     defaultOrderExpiryMinutes: env.DEFAULT_ORDER_EXPIRY_MINUTES,
     matchingWindowMinutes: env.MATCHING_WINDOW_MINUTES,

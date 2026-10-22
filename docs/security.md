@@ -107,8 +107,11 @@ placeholders only. Production startup refuses placeholder secrets, non-HTTPS
 
 - TLS terminated in front of the app; `APP_URL` https; HSTS enabled in
   production.
-- Security headers: CSP (`default-src 'self'`, `frame-ancestors 'none'`,
-  `object-src 'none'`), `nosniff`, `Referrer-Policy: same-origin`.
+- Security headers: CSP (`default-src 'self'`, `frame-ancestors 'none'` by
+  default, `object-src 'none'`), `nosniff`, `Referrer-Policy: same-origin`.
+  `CSP_FRAME_ANCESTORS` exists only for embedding in a trusted shell (preview
+  panes); production must keep the default `'none'`. `COOKIE_SAMESITE=none` is
+  likewise for cross-site embedding and requires HTTPS + `COOKIE_SECURE`.
 - Postgres not exposed publicly; SSL (`PGSSLMODE=require`) for managed
   databases; least-privilege DB role (no superuser for the app).
 - Backups encrypted, restore rehearsed; audit logs exported to append-only

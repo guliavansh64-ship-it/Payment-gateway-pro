@@ -69,7 +69,7 @@
         <p class="hint centered"><%= qr.label %> · scanning pays this exact amount</p>
 
         <% if (qr.payload && qr.payload.indexOf('upi://') === 0) { %>
-          <a class="btn btn-primary btn-block" href="<%= qr.payload.replace(/&/g, '&amp;') %>" rel="noopener">
+          <a class="btn btn-primary btn-block" href="<%= qr.payload %>" rel="noopener">
             Open in UPI app
           </a>
         <% } %>
