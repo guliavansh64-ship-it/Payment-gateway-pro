@@ -1,0 +1,147 @@
+<%- include('../partials/dashboard-start', { crumb: 'Review case' }) %>
+<div class="page-head">
+  <div>
+    <span class="pill <%= reviewCase.resolutionStatus === 'OPEN' ? 'pill-warn' : 'pill-success' %>"><%= reviewCase.resolutionStatus.replaceAll('_',' ') %></span>
+    <h1 style="margin-top:.4rem"><%= reviewCase.reason.replaceAll('_',' ') %></h1>
+    <p class="mono small"><%= reviewCase.id %></p>
+  </div>
+  <a class="btn" href="/dashboard/review">Back to queue</a>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Evidence</h2></div>
+      <div class="card-body">
+        <p class="small"><%= reviewCase.detail || 'No detail recorded.' %></p>
+        <% if (candidate) { %>
+          <dl class="kv">
+            <dt>Reference</dt><dd class="mono"><%= candidate.providerTransactionReference %></dd>
+            <dt>Provider</dt><dd><%= candidate.providerName %></dd>
+            <dt>Source</dt><dd><%= candidate.source.replaceAll('_',' ') %></dd>
+            <dt>Amount</dt><dd><%= formatMoney(candidate.amountPaise) %></dd>
+            <dt>Status</dt><dd><%= candidate.transactionStatus %> · <%= candidate.verificationStatus.replaceAll('_',' ') %></dd>
+            <dt>Payee VPA</dt><dd class="mono"><%= candidate.payeeVpa || '—' %></dd>
+            <dt>Transaction time</dt><dd><%= formatDate(candidate.transactionTimestamp) %></dd>
+          </dl>
+        <% } else { %>
+          <p class="small muted">No candidate transaction is attached yet.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (order) { %>
+      <div class="card">
+        <div class="card-head">
+          <h2>Linked order</h2>
+          <a class="small" href="/dashboard/orders/<%= order.orderId %>">Open order</a>
+        </div>
+        <div class="card-body">
+          <dl class="kv">
+            <dt>Order</dt><dd class="mono"><%= order.orderId %></dd>
+            <dt>Status</dt><dd><span class="<%= statusClass(order.status) %>"><%= statusLabel(order.status) %></span></dd>
+            <dt>Expected</dt><dd><%= formatMoney(order.amountPaise) %></dd>
+            <dt>Received</dt><dd><%= candidate ? formatMoney(candidate.amountPaise) : formatMoney(order.paidAmountPaise) %></dd>
+            <dt>Provider</dt><dd><%= order.providerName %></dd>
+            <dt>Expires</dt><dd><%= formatDate(order.expiresAt) %></dd>
+          </dl>
+          <% if (order.status === 'REVIEW_REQUIRED' && history.length) { %>
+            <h3 style="font-size:.82rem;margin-top:1rem">Recent status changes</h3>
+            <ul class="timeline" style="margin-top:.4rem">
+              <% history.slice(-4).forEach(function (h) { %>
+                <li class="done"><div><div class="t"><%= statusLabel(h.toStatus) %></div>
+                  <div class="m"><%= formatDate(h.createdAt) %> · <%= h.reasonCode.replaceAll('_',' ').toLowerCase() %></div></div></li>
+              <% }); %>
+            </ul>
+          <% } %>
+        </div>
+      </div>
+    <% } else if (possibleOrders.length) { %>
+      <div class="card">
+        <div class="card-head"><h2>Candidate orders</h2></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Order</th><th class="right">Amount</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              <% possibleOrders.forEach(function (o) { %>
+                <tr>
+                  <td class="mono small"><%= o.orderId %></td>
+                  <td class="num"><%= formatMoney(o.amountPaise) %></td>
+                  <td><span class="<%= statusClass(o.status) %>"><%= statusLabel(o.status) %></span></td>
+                  <td class="right"><a class="btn btn-sm" href="/dashboard/orders/<%= o.orderId %>">Open</a></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="stack">
+    <% if (canDecide) { %>
+      <div class="card">
+        <div class="card-head"><h3>Decide</h3></div>
+        <div class="card-body">
+          <% if (!order) { %>
+            <form method="post" action="/dashboard/review/<%= reviewCase.id %>/assign" class="stacked" style="margin-bottom:1rem">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label for="order_id">Attach to an order</label>
+                <input id="order_id" name="order_id" placeholder="PAY-20261022-XXXXXXXX" required>
+                <span class="hint">Use this when the payment clearly belongs to one of the candidate orders.</span>
+              </div>
+              <button class="btn btn-block" type="submit">Link order</button>
+            </form>
+          <% } %>
+
+          <% if (order) { %>
+            <form method="post" action="/dashboard/review/<%= reviewCase.id %>/approve" class="stacked">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label for="note">Approval reason (required)</label>
+                <textarea id="note" name="note" required minlength="10" placeholder="Bank statement dated … shows UTR … credited to HDFC …1234"></textarea>
+              </div>
+              <% if (candidate && order.amountPaise !== candidate.amountPaise) { %>
+                <label class="check">
+                  <input type="checkbox" name="accept_mismatch">
+                  <span>Accept the amount mismatch: received <%= formatMoney(candidate.amountPaise) %> against <%= formatMoney(order.amountPaise) %>.</span>
+                </label>
+              <% } %>
+              <button class="btn btn-primary btn-block" type="submit" data-confirm="Record a manual payment confirmation for this order?">Approve payment</button>
+              <p class="small muted" style="margin:0">Requires step-up authentication. Written to the audit log with your user id.</p>
+            </form>
+          <% } %>
+
+          <form method="post" action="/dashboard/review/<%= reviewCase.id %>/reject" class="stacked" style="margin-top:1rem">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <div class="field">
+              <label for="reject_note">Rejection reason</label>
+              <textarea id="reject_note" name="note" required minlength="10" placeholder="No matching credit found in the settlement report for this period."></textarea>
+            </div>
+            <button class="btn btn-danger btn-block" type="submit">Reject / dismiss</button>
+          </form>
+        </div>
+      </div>
+    <% } else if (reviewCase.resolutionNote) { %>
+      <div class="card">
+        <div class="card-head"><h3>Resolution</h3></div>
+        <div class="card-body small">
+          <p><strong><%= reviewCase.resolutionStatus.replaceAll('_',' ') %></strong></p>
+          <p class="muted"><%= reviewCase.resolutionNote %></p>
+          <p class="muted">Reviewed <%= formatDate(reviewCase.reviewedAt) %></p>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-head"><h3>Guardrails</h3></div>
+      <div class="card-body small muted">
+        <p>A manual approval creates a <span class="mono">MANUAL_ENTRY</span> transaction under the
+        <span class="mono">manual_review</span> provider key. It never overwrites or imitates a provider record.</p>
+        <p style="margin-bottom:0">Duplicate credits are prevented by a database constraint, not just by application logic.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

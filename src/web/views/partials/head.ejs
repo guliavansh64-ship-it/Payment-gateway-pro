@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof title !== 'undefined' && title ? title : 'UPI Verify' %></title>
+  <meta name="description" content="Collect UPI payments and confirm them against authoritative provider and bank records.">
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="/app.css">
+  <% if (typeof csrfToken !== 'undefined' && csrfToken) { %>
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <% } %>
+</head>

@@ -1,0 +1,30 @@
+<%- include('partials/head', { title }) %>
+<body class="auth-body">
+<main class="auth-wrap">
+  <section class="card auth-card">
+    <a class="brand" href="/dashboard">
+      <span class="brand-mark">UV</span>
+      <span>
+        <span class="brand-name"><%= appName %></span>
+        <span class="brand-sub">Sensitive action</span>
+      </span>
+    </a>
+    <h1>Confirm it’s you</h1>
+    <p class="hint">
+      Refunds and manual payment decisions require a fresh password confirmation.
+      This unlocks sensitive actions for 10 minutes.
+    </p>
+    <% if (error) { %><div class="alert error" role="alert"><div><%= error %></div></div><% } %>
+    <form method="post" action="/step-up" class="stacked">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label for="password">Your password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Unlock for 10 minutes</button>
+    </form>
+    <p class="hint">Signed in as <strong><%= user.email %></strong>.</p>
+  </section>
+</main>
+<%- include('partials/foot') %>

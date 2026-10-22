@@ -1,0 +1,203 @@
+<%- include('../partials/dashboard-start', { crumb: order.orderId }) %>
+
+<div class="page-head">
+  <div>
+    <div class="row" style="gap:.5rem;margin-bottom:.3rem">
+      <span class="<%= statusClass(order.status) %>"><%= statusLabel(order.status) %></span>
+      <span class="pill pill-neutral"><%= order.verificationStatus.replaceAll('_',' ') %></span>
+      <% if (order.verificationSource) { %><span class="pill pill-info"><%= order.verificationSource.replaceAll('_',' ') %></span><% } %>
+    </div>
+    <h1 class="mono" style="font-size:1.35rem"><%= order.orderId %></h1>
+    <p><%= order.description || 'No description' %> · created <%= formatDate(order.createdAt) %> IST</p>
+  </div>
+  <div class="row">
+    <form method="post" action="/dashboard/orders/<%= order.orderId %>/verify">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn" type="submit" <%= order.providerName === 'manual_upi' ? 'disabled' : '' %>>Re-check provider</button>
+    </form>
+    <a class="btn btn-primary" href="<%= paymentUrl %>" target="_blank" rel="noopener">Customer page</a>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Payment</h2></div>
+      <div class="card-body">
+        <div class="spread" style="margin-bottom:1rem">
+          <div>
+            <div class="small muted">Ordered amount</div>
+            <div style="font-size:1.9rem;font-weight:700;letter-spacing:-.03em"><%= formatMoney(order.amountPaise) %></div>
+          </div>
+          <div class="right">
+            <div class="small muted">Confirmed received</div>
+            <div style="font-size:1.3rem;font-weight:650"><%= formatMoney(order.paidAmountPaise) %></div>
+            <% if (order.refundedPaise > 0) { %><div class="small muted">Refunded <%= formatMoney(order.refundedPaise) %></div><% } %>
+          </div>
+        </div>
+
+        <dl class="kv">
+          <dt>Merchant</dt><dd><%= merchant.businessName %> · <%= merchant.merchantCode %></dd>
+          <dt>Method</dt><dd><%= order.paymentMethod.replace('_',' ') %></dd>
+          <dt>Provider</dt><dd><%= order.providerName %></dd>
+          <dt>Provider payment ID</dt><dd class="mono"><%= order.providerPaymentId || '—' %></dd>
+          <dt>Payee UPI ID</dt><dd class="mono"><%= order.upiPayeeVpa || '—' %></dd>
+          <dt>Expires</dt><dd><%= formatDate(order.expiresAt) %></dd>
+          <dt>Paid at</dt><dd><%= formatDate(order.paidAt) %></dd>
+          <dt>Verified at</dt><dd><%= formatDate(order.verifiedAt) %></dd>
+        </dl>
+
+        <div class="upi-id-row" style="margin-top:1rem">
+          <div><div class="small muted">Customer payment link</div>
+            <div class="mono small" style="word-break:break-all"><%= paymentUrl %></div></div>
+          <button class="btn btn-sm" type="button" data-copy="<%= paymentUrl %>">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Status history</h2>
+        <span class="small muted">Append-only</span>
+      </div>
+      <div class="card-body">
+        <ul class="timeline">
+          <% history.forEach(function (h) { %>
+            <li class="done">
+              <div>
+                <div class="t"><%= statusLabel(h.toStatus) %> <span class="muted">·</span> <span class="small muted"><%= h.reasonCode.replaceAll('_',' ').toLowerCase() %></span></div>
+                <div class="m"><%= formatDate(h.createdAt) %> · <%= h.actorType.toLowerCase() %><% if (h.note) { %> — <%= truncate(h.note, 120) %><% } %></div>
+              </div>
+            </li>
+          <% }); %>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Transactions</h2></div>
+      <% if (!transactions.length) { %>
+        <div class="empty">No transaction evidence recorded yet.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Reference</th><th>Source</th><th class="right">Amount</th><th>Status</th><th>Verified</th><th>Credited</th></tr></thead>
+            <tbody>
+              <% transactions.forEach(function (t) { %>
+                <tr>
+                  <td class="mono small"><%= t.providerTransactionReference %></td>
+                  <td class="sub"><%= t.source.replaceAll('_',' ') %><br><%= t.providerName %></td>
+                  <td class="num"><%= formatMoney(t.amountPaise) %></td>
+                  <td class="sub"><%= t.transactionStatus %> · <%= t.verificationStatus.replaceAll('_',' ') %></td>
+                  <td class="sub nowrap"><%= formatDate(t.verifiedAt) %></td>
+                  <td><%= t.creditedToOrder ? 'Yes' : '—' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Event inbox</h2><span class="small muted">Idempotent processing</span></div>
+      <% if (!events.length) { %>
+        <div class="empty">No webhook or notification events for this order.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Event</th><th>Source</th><th>Processing</th><th>Received</th></tr></thead>
+            <tbody>
+              <% events.forEach(function (e) { %>
+                <tr>
+                  <td class="mono small"><%= truncate(e.eventId, 34) %></td>
+                  <td class="sub"><%= e.source.replaceAll('_',' ') %></td>
+                  <td><span class="pill <%= e.processingStatus === 'PROCESSED' ? 'pill-success' : e.processingStatus === 'DUPLICATE' ? 'pill-neutral' : e.processingStatus === 'FAILED' ? 'pill-danger' : 'pill-warn' %>"><%= e.processingStatus %></span></td>
+                  <td class="sub nowrap"><%= formatDate(e.receivedAt) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <% if (cases.length) { %>
+      <div class="card">
+        <div class="card-head"><h3>Review cases</h3></div>
+        <div class="card-body tight">
+          <% cases.forEach(function (c) { %>
+            <div class="provider-item" style="margin-bottom:.5rem">
+              <div>
+                <div class="name"><%= c.reason.replaceAll('_',' ') %></div>
+                <div class="caps"><%= c.resolutionStatus.replaceAll('_',' ') %> · <%= relativeTime(c.createdAt) %></div>
+              </div>
+              <a class="btn btn-sm" href="/dashboard/review/<%= c.id %>">Open</a>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-head"><h3>Refunds</h3></div>
+      <div class="card-body tight">
+        <% if (!refunds.length) { %>
+          <p class="small muted">No refunds.</p>
+        <% } else { %>
+          <% refunds.forEach(function (r) { %>
+            <div class="provider-item" style="margin-bottom:.5rem">
+              <div>
+                <div class="name"><%= formatMoney(r.amountPaise) %> · <%= r.status %></div>
+                <div class="caps"><%= r.reasonCode.replaceAll('_',' ') %> · <%= formatDate(r.requestedAt) %></div>
+              </div>
+            </div>
+          <% }); %>
+        <% } %>
+
+        <% if (canRefund) { %>
+          <details style="margin-top:.8rem">
+            <summary class="small" style="cursor:pointer;color:var(--brand);font-weight:600">Issue a refund</summary>
+            <form method="post" action="/dashboard/orders/<%= order.orderId %>/refund" class="stacked" style="margin-top:.7rem">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label for="amount">Amount (max <%= formatMoney(refundablePaise) %>)</label>
+                <input id="amount" name="amount" value="<%= formatMoney(refundablePaise).replace('₹','').replace(/,/g,'') %>" required>
+              </div>
+              <div class="field">
+                <label for="reason_code">Reason</label>
+                <select id="reason_code" name="reason_code">
+                  <option value="REQUESTED_BY_CUSTOMER">Requested by customer</option>
+                  <option value="DUPLICATE">Duplicate payment</option>
+                  <option value="LATE_PAYMENT">Late payment</option>
+                  <option value="AMOUNT_MISMATCH">Amount mismatch</option>
+                  <option value="FRAUDULENT">Fraudulent</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="note">Note (recorded in the audit log)</label>
+                <textarea id="note" name="note" required minlength="5"></textarea>
+              </div>
+              <button class="btn btn-danger btn-block" type="submit" data-confirm="Send this refund to the provider?">Submit refund</button>
+              <p class="small muted" style="margin:0">Admin only · step-up required · executed through the provider's API.</p>
+            </form>
+          </details>
+        <% } else if (order.paidAmountPaise) { %>
+          <p class="small muted" style="margin-top:.6rem">Refunds require an administrator session with step-up authentication.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Raw metadata</h3></div>
+      <div class="card-body">
+        <div class="code-block"><%= JSON.stringify(order.metadata, null, 2) %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/dashboard-end') %>

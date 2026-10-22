@@ -1,0 +1,83 @@
+<%- include('../partials/dashboard-start', { crumb: 'Merchants' }) %>
+<div class="page-head">
+  <div>
+    <h1>Merchants</h1>
+    <p>Verifying a UPI ID is an attestation: only do it after out-of-band validation with the merchant.</p>
+  </div>
+</div>
+
+<div class="stack">
+  <% merchants.forEach(function (m) { %>
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <h2 style="margin:0"><%= m.businessName %></h2>
+          <span class="mono small muted"><%= m.merchantCode %></span>
+        </div>
+        <span class="pill <%= m.accountStatus === 'ACTIVE' ? 'pill-success' : m.accountStatus === 'SUSPENDED' ? 'pill-danger' : 'pill-neutral' %>"><%= m.accountStatus %></span>
+      </div>
+      <div class="card-body">
+        <div class="grid-2 equal">
+          <div>
+            <dl class="kv">
+              <dt>Verified UPI ID</dt><dd class="mono"><%= m.verifiedUpi || 'not verified' %></dd>
+              <dt>Orders</dt><dd><%= m.orders %></dd>
+              <dt>Confirmed value</dt><dd><%= formatMoney(m.confirmedValuePaise) %></dd>
+              <dt>In review</dt><dd><%= m.review %></dd>
+            </dl>
+            <form method="post" action="/admin/merchants/<%= m.id %>/upi" class="filters" style="margin-top:1rem">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field grow">
+                <label for="upi-<%= m.id %>">Set verified UPI ID <span class="muted">(blank clears)</span></label>
+                <input id="upi-<%= m.id %>" name="upi_id" value="<%= m.verifiedUpi || '' %>" placeholder="merchant@bank">
+              </div>
+              <div class="field"><button class="btn" type="submit">Save</button></div>
+            </form>
+          </div>
+          <div>
+            <form method="post" action="/admin/merchants/<%= m.id %>/status" class="filters">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <div class="field">
+                <label for="status-<%= m.id %>">Account status</label>
+                <select id="status-<%= m.id %>" name="status">
+                  <% ['PENDING','ACTIVE','SUSPENDED','CLOSED'].forEach(function (s) { %>
+                    <option value="<%= s %>" <%= m.accountStatus === s ? 'selected' : '' %>><%= s %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="field">
+                <label for="policy-<%= m.id %>">Late payment policy</label>
+                <select id="policy-<%= m.id %>" name="policy">
+                  <option value="REVIEW">Review manually</option>
+                  <option value="FULFIL">Fulfil</option>
+                  <option value="REFUND">Refund</option>
+                </select>
+              </div>
+              <div class="field"><button class="btn" type="submit">Update</button></div>
+            </form>
+            <div class="alert info" style="margin-top:1rem">
+              <div class="small">Step-up authentication is required to change the verified UPI ID.
+                Activation requires either a verified UPI ID or a configured provider.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% }); %>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card-head"><h3>Users</h3><a class="small" href="/admin/users">All users</a></div>
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead>
+      <tbody>
+        <% users.slice(0, 8).forEach(function (u) { %>
+          <tr><td><%= u.name %></td><td class="mono small"><%= u.email %></td><td class="small"><%= u.role %></td>
+            <td><span class="pill <%= u.isActive ? 'pill-success' : 'pill-danger' %>"><%= u.isActive ? 'yes' : 'no' %></span></td></tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

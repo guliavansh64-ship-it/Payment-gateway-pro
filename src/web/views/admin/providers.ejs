@@ -1,0 +1,84 @@
+<%- include('../partials/dashboard-start', { crumb: 'Provider configuration' }) %>
+<div class="page-head">
+  <div>
+    <h1>Provider configuration</h1>
+    <p>Enabling a provider does not test it. Credentials come from environment variables or a managed secret store —
+      never from this form.</p>
+  </div>
+  <form method="post" action="/admin/providers/health">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <button class="btn" type="submit">Run health checks</button>
+  </form>
+</div>
+
+<div class="alert warn">
+  <div><strong>Before enabling a provider for merchants</strong>
+    Complete docs/PROVIDER_ONBOARDING.md: sandbox credentials, webhook signature test, status API test,
+    refund test, reconciliation of settlement reports, and a written rollback plan.</div>
+</div>
+
+<div class="card">
+  <% providers.forEach(function (p) { %>
+    <% var cfg = configs.find(function (c) { return c.providerName === p.name; }) || { enabled: false, mode: 'test', lastHealthStatus: null, lastHealthDetail: null, lastHealthAt: null }; %>
+    <div class="card-body" style="border-bottom:1px solid var(--line-2)">
+      <div class="spread" style="margin-bottom:.7rem">
+        <div>
+          <div class="row" style="gap:.5rem">
+            <h2 style="margin:0;font-size:1rem"><%= p.displayName %></h2>
+            <% if (p.simulated) { %><span class="pill pill-warn">test double</span>
+            <% } else if (!p.configured) { %><span class="pill pill-neutral">no credentials</span>
+            <% } else { %><span class="pill pill-info">credentials present</span><% } %>
+          </div>
+          <div class="mono small muted"><%= p.name %></div>
+        </div>
+        <span class="pill <%= cfg.enabled ? 'pill-success' : 'pill-neutral' %>"><%= cfg.enabled ? 'Enabled' : 'Disabled' %></span>
+      </div>
+
+      <form method="post" action="/admin/providers" class="filters">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="provider_name" value="<%= p.name %>">
+        <div class="field">
+          <label for="mode-<%= p.name %>">Mode</label>
+          <select id="mode-<%= p.name %>" name="mode">
+            <% (p.name === 'cashfree' ? ['sandbox','production'] : ['test','live']).forEach(function (m) { %>
+              <option value="<%= m %>" <%= cfg.mode === m ? 'selected' : '' %>><%= m %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="field">
+          <label class="check" style="margin-top:1.5rem">
+            <input type="checkbox" name="enabled" <%= cfg.enabled ? 'checked' : '' %> <%= p.configured ? '' : 'disabled' %>>
+            <span>Enabled for order creation</span>
+          </label>
+        </div>
+        <div class="field"><button class="btn btn-primary" type="submit" <%= p.configured ? '' : 'disabled' %>>Save</button></div>
+        <div class="field small muted" style="max-width:420px">
+          <% var missing = Object.entries(p.capabilities).filter(function (e) { return !e[1]; }).map(function (e) { return e[0]; }); %>
+          <% if (missing.length) { %>Unsupported: <%= missing.join(', ') %><% } else { %>All adapter capabilities implemented<% } %>
+        </div>
+      </form>
+
+      <% if (cfg.lastHealthStatus) { %>
+        <p class="small" style="margin:.6rem 0 0">
+          <span class="pill <%= cfg.lastHealthStatus === 'OK' ? 'pill-success' : cfg.lastHealthStatus === 'DOWN' ? 'pill-danger' : 'pill-warn' %>"><%= cfg.lastHealthStatus %></span>
+          <span class="muted"> <%= cfg.lastHealthDetail %> · <%= cfg.lastHealthAt ? relativeTime(cfg.lastHealthAt) : '' %></span>
+        </p>
+      <% } %>
+    </div>
+  <% }); %>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card-head"><h3>Environment status</h3></div>
+  <div class="card-body">
+    <dl class="kv">
+      <dt>Razorpay</dt><dd><%= config.razorpay.keyId ? 'key id present · ' + config.razorpay.mode : 'not configured' %></dd>
+      <dt>Cashfree</dt><dd><%= config.cashfree.clientId ? 'client id present · ' + config.cashfree.mode : 'not configured' %></dd>
+      <dt>Sandbox adapter</dt><dd><%= config.allowSandboxProvider ? 'enabled (non-production only)' : 'disabled' %></dd>
+      <dt>Google OAuth</dt><dd><%= config.google.clientId ? 'configured · ' + (config.google.pubsubTopic ? 'push + polling' : 'polling') : 'not configured' %></dd>
+      <dt>Gmail senders</dt><dd><%= config.gmailAllowedSenderDomains.join(', ') || 'none — monitoring disabled' %></dd>
+    </dl>
+    <p class="small muted" style="margin-top:.8rem;margin-bottom:0">Secrets are never rendered. Only presence flags are shown.</p>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

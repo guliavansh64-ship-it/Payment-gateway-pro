@@ -1,0 +1,28 @@
+<%- include('partials/head', { title }) %>
+<body class="auth-body">
+<main class="auth-wrap">
+  <section class="card auth-card">
+    <a class="brand" href="/">
+      <span class="brand-mark">UV</span>
+      <span>
+        <span class="brand-name"><%= appName %></span>
+        <span class="brand-sub">Something went wrong</span>
+      </span>
+    </a>
+    <p class="error-code"><%= typeof status !== 'undefined' ? status : (typeof statusCode !== 'undefined' ? statusCode : 500) %></p>
+    <h1><%= typeof heading !== 'undefined' && heading ? heading : (typeof title !== 'undefined' && title ? title : 'Something went wrong') %></h1>
+    <p class="hint"><%= message %></p>
+    <% if (typeof requestId !== 'undefined' && requestId) { %>
+      <p class="hint">Reference: <code><%= requestId %></code></p>
+    <% } %>
+    <div class="row">
+      <a class="btn btn-secondary" href="/">Home</a>
+      <% if (typeof user !== 'undefined' && user) { %>
+        <a class="btn btn-primary" href="/dashboard">Dashboard</a>
+      <% } else { %>
+        <a class="btn btn-primary" href="/login">Sign in</a>
+      <% } %>
+    </div>
+  </section>
+</main>
+<%- include('partials/foot') %>

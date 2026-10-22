@@ -1,0 +1,63 @@
+<%- include('../partials/dashboard-start', { crumb: 'Providers' }) %>
+<div class="page-head">
+  <div>
+    <h1>Provider integrations</h1>
+    <p>Adapters are independent modules. A provider is only usable once credentials are present and an operator enables it.</p>
+  </div>
+</div>
+
+<div class="alert info">
+  <div><strong>Configured is not the same as verified.</strong>
+    Every adapter in this repository must be signed off against the provider's sandbox before real merchants use it.
+    See the provider onboarding checklist in the documentation.</div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Provider</th><th>Status</th><th>Capabilities</th><th>Health</th></tr></thead>
+      <tbody>
+        <% providers.forEach(function (p) { %>
+          <% var cfg = configs.find(function (c) { return c.providerName === p.name; }); %>
+          <tr>
+            <td>
+              <div class="primary"><%= p.displayName %></div>
+              <div class="sub mono"><%= p.name %></div>
+            </td>
+            <td>
+              <% if (p.simulated) { %><span class="pill pill-warn">Test double</span>
+              <% } else if (!p.configured) { %><span class="pill pill-neutral">Not configured</span>
+              <% } else { %><span class="pill pill-info">Credentials present</span><% } %>
+              <div class="sub"><%= cfg && cfg.enabled ? 'enabled by operator' : 'not enabled' %></div>
+            </td>
+            <td class="small">
+              <% Object.entries(p.capabilities).forEach(function (entry) { %>
+                <span class="pill <%= entry[1] ? 'pill-success' : 'pill-neutral' %>" style="margin:0 .2rem .2rem 0"><%= entry[0] %></span>
+              <% }); %>
+            </td>
+            <td class="small">
+              <% if (cfg && cfg.lastHealthStatus) { %>
+                <span class="pill <%= cfg.lastHealthStatus === 'OK' ? 'pill-success' : cfg.lastHealthStatus === 'DOWN' ? 'pill-danger' : 'pill-warn' %>"><%= cfg.lastHealthStatus %></span>
+                <div class="sub"><%= cfg.lastHealthDetail %></div>
+                <div class="sub"><%= cfg.lastHealthAt ? relativeTime(cfg.lastHealthAt) : '' %></div>
+              <% } else { %><span class="muted">never checked</span><% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1rem">
+  <div class="card-head"><h3>Direct UPI (merchant VPA)</h3></div>
+  <div class="card-body">
+    <p class="small muted" style="margin-bottom:0">
+      Direct UPI orders require an operator-verified merchant UPI ID. There is no bank API to query incoming
+      transfers, so those orders are confirmed by a human against a bank statement, or by a provider
+      reconciliation file where one exists. The customer page states this limitation explicitly.
+    </p>
+  </div>
+</div>
+
+<%- include('../partials/dashboard-end') %>
