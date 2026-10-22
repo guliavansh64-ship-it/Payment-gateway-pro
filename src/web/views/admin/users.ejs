@@ -1,0 +1,28 @@
+<%- include('../partials/dashboard-start', { crumb: 'Users' }) %>
+<div class="page-head">
+  <div>
+    <h1>Users</h1>
+    <p>Roles: ADMIN (full), MERCHANT_ADMIN (own merchant), AUDITOR (read-only), USER (no dashboard access).</p>
+  </div>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table class="data">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th><th>Failed logins</th><th>Last login</th></tr></thead>
+      <tbody>
+        <% users.forEach(function (u) { %>
+          <tr>
+            <td class="primary"><%= u.name %></td>
+            <td class="mono small"><%= u.email %></td>
+            <td><span class="pill pill-neutral"><%= u.role %></span></td>
+            <td><span class="pill <%= u.isActive ? 'pill-success' : 'pill-danger' %>"><%= u.isActive ? 'active' : 'disabled' %></span></td>
+            <td class="num"><%= u.failedLogins %></td>
+            <td class="sub nowrap"><%= formatDate(u.lastLoginAt) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+<p class="small muted">Account creation and password resets are performed with the provisioning CLI, not through the web UI.</p>
+<%- include('../partials/dashboard-end') %>

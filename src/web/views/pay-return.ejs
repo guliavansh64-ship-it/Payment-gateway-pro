@@ -1,0 +1,31 @@
+<%- include('partials/head', { title }) %>
+<body class="public">
+<header class="public-nav narrow">
+  <span class="brand">
+    <span class="brand-mark">UV</span>
+    <span><span class="brand-name"><%= appName %></span><span class="brand-sub">Payment status</span></span>
+  </span>
+</header>
+<main class="pay-main">
+  <section class="card pay-card">
+    <h1>Back from your UPI app?</h1>
+    <p class="lede">
+      Your payment is confirmed by the payment provider, not by returning to this page.
+      <% if (orderId) { %>
+        Open your payment request to see the live status.
+      <% } else { %>
+        Open the original payment link to see its live status.
+      <% } %>
+    </p>
+    <% if (orderId) { %>
+      <a class="btn btn-primary" href="/pay/<%= orderId %>">View payment request</a>
+    <% } %>
+    <p class="hint">
+      If your account was debited but the order still shows pending, keep your UPI reference number
+      and contact the merchant. Do not pay twice.
+    </p>
+  </section>
+</main>
+<%- include('partials/foot') %>
+</body>
+</html>

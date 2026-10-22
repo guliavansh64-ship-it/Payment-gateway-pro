@@ -1,0 +1,156 @@
+<%- include('partials/head', { title }) %>
+<%- include('partials/icons') %>
+<body class="public pay-body">
+<header class="public-nav narrow">
+  <span class="brand">
+    <span class="brand-mark" style="background:<%= merchant.brandingColor || '#0f766e' %>"><%= initials(merchant.businessName) %></span>
+    <span>
+      <span class="brand-name"><%= merchant.businessName %></span>
+      <span class="brand-sub">Secure UPI payment</span>
+    </span>
+  </span>
+  <span class="pill <%= sandbox ? 'pill-warn' : 'pill-neutral' %>">
+    <% if (sandbox) { %><span class="dot"></span>Sandbox · no real money<% } else { %>Verified collection<% } %>
+  </span>
+</header>
+
+<main class="pay-main">
+  <section class="card pay-card" data-pay-root
+           data-status-url="/pay/<%= order.orderId %>/status?t=<%= encodeURIComponent(token) %>"
+           data-check-url="/pay/<%= order.orderId %>/check?t=<%= encodeURIComponent(token) %>"
+           data-expires="<%= isoDate(order.expiresAt) %>"
+           data-initial-status="<%= order.status %>">
+    <div class="pay-head">
+      <div>
+        <p class="eyebrow">Amount to pay</p>
+        <p class="pay-amount" data-amount><%= formatMoney(order.amountPaise) %></p>
+        <p class="hint">Order <code><%= order.orderId %></code></p>
+      </div>
+      <span class="<%= statusClass(order.status) %>" data-status-pill><%= statusLabel(order.status) %></span>
+    </div>
+
+    <% if (notice === 'simulated') { %>
+      <div class="alert info"><div>Sandbox event delivered through the signed webhook pipeline.</div></div>
+    <% } %>
+
+    <div class="paid-banner <%= ['PAID','LATE_PAYMENT','PARTIALLY_REFUNDED','REFUNDED'].includes(order.status) ? '' : 'hidden' %>" data-paid-banner>
+      <div class="paid-check" aria-hidden="true">✓</div>
+      <div>
+        <strong data-paid-title><%= order.status === 'LATE_PAYMENT' ? 'Payment received — late confirmation' : 'Payment confirmed' %></strong>
+        <p class="hint" data-paid-copy>
+          Confirmed by <%= order.verificationSource === 'PROVIDER_WEBHOOK' ? 'the payment provider (signed webhook)' : order.verificationSource === 'PROVIDER_API' ? 'the payment provider (status API)' : order.verificationSource === 'MANUAL_ENTRY' ? 'the merchant team after manual reconciliation' : 'the payment provider' %>.
+          You can close this page.
+        </p>
+      </div>
+    </div>
+
+    <div class="review-banner <%= ['REVIEW_REQUIRED','REFUND_PENDING'].includes(order.status) ? '' : 'hidden' %>" data-review-banner>
+      <strong>We’re checking this payment</strong>
+      <p class="hint">
+        The payment needs a human review before it is confirmed (for example an amount that does not match,
+        or a reference we cannot verify). Nothing is marked paid until that check completes.
+      </p>
+    </div>
+
+    <div class="expired-banner <%= expired && ['CREATED','PENDING','VERIFYING'].includes(order.status) ? '' : 'hidden' %>" data-expired-banner>
+      <strong>This payment request has expired</strong>
+      <p class="hint">
+        If you already paid, don’t worry — a confirmed payment is still recorded and routed for review.
+        Contact the merchant with your UPI reference.
+      </p>
+    </div>
+
+    <div class="pay-grid">
+      <div class="scan-pane">
+        <div class="qr-frame">
+          <img src="/pay/<%= order.orderId %>/qr.png?t=<%= encodeURIComponent(token) %>"
+               alt="UPI QR code for order <%= order.orderId %>" width="256" height="256">
+        </div>
+        <p class="hint centered"><%= qr.label %> · scanning pays this exact amount</p>
+
+        <% if (qr.payload && qr.payload.indexOf('upi://') === 0) { %>
+          <a class="btn btn-primary btn-block" href="<%= qr.payload.replace(/&/g, '&amp;') %>" rel="noopener">
+            Open in UPI app
+          </a>
+        <% } %>
+        <p class="hint centered">
+          If scanning does not work, pay manually to the UPI ID below.
+        </p>
+      </div>
+
+      <div class="pay-details">
+        <div class="field">
+          <label>Payee UPI ID</label>
+          <div class="copy-row">
+            <code data-copy-value><%= order.upiPayeeVpa || 'Not available for this provider' %></code>
+            <% if (order.upiPayeeVpa) { %>
+              <button class="btn btn-secondary btn-sm" type="button" data-copy="<%= order.upiPayeeVpa %>">Copy</button>
+            <% } %>
+          </div>
+        </div>
+        <div class="field">
+          <label>Payee name</label>
+          <div class="copy-row"><span><%= order.upiPayeeName || merchant.businessName %></span></div>
+        </div>
+        <div class="field">
+          <label>Order ID</label>
+          <div class="copy-row">
+            <code><%= order.orderId %></code>
+            <button class="btn btn-secondary btn-sm" type="button" data-copy="<%= order.orderId %>">Copy</button>
+          </div>
+          <p class="hint">
+            Some UPI apps do not forward this note to the merchant. Keep your UPI reference number instead.
+          </p>
+        </div>
+        <div class="field">
+          <label>Request expires</label>
+          <div><%= expiryLabel %> <span class="hint" data-countdown></span></div>
+        </div>
+
+        <div class="status-line">
+          <span class="<%= statusClass(order.status) %>" data-status-pill-inline><%= statusLabel(order.status) %></span>
+          <span class="hint" data-status-updated>Last update: <%= formatDate(order.updatedAt) %></span>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="button" data-check-payment
+                <%= ['PAID','REFUNDED','FAILED'].includes(order.status) ? 'disabled' : '' %>>
+          <span data-check-label>Check payment status</span>
+          <span class="spinner hidden" data-spinner aria-hidden="true"></span>
+        </button>
+        <p class="hint centered" data-check-note>
+          This checks with the payment provider. A browser cannot mark an order paid.
+        </p>
+      </div>
+    </div>
+
+    <details class="pay-steps">
+      <summary>How to pay</summary>
+      <ol>
+        <% instructions.forEach(function (line) { %><li><%= line %></li><% }); %>
+      </ol>
+    </details>
+
+    <div class="safety">
+      <svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg>
+      <p>
+        <%= merchant.businessName %> will never ask for your UPI PIN, OTP, bank password or card number
+        on this page or by phone. If someone does, stop and contact
+        <% if (merchant.supportEmail) { %><a href="mailto:<%= merchant.supportEmail %>"><%= merchant.supportEmail %></a><% } else { %>the merchant directly<% } %>.
+      </p>
+    </div>
+
+    <% if (sandbox) { %>
+      <p class="sandbox-note">
+        <strong>Sandbox:</strong> this payment request uses a local test double.
+        <a href="/sandbox/pay/<%= order.orderId %>?t=<%= encodeURIComponent(token) %>">Open the simulator</a>
+        to deliver a signed test event. No money moves.
+      </p>
+    <% } %>
+  </section>
+
+  <p class="legal">Order <code><%= order.orderId %></code> · amount fixed by the merchant · payment confirmation is authoritative, not browser-reported.</p>
+</main>
+
+<%- include('partials/foot') %>
+</body>
+</html>

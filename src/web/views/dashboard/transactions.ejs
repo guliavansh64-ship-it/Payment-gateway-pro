@@ -1,0 +1,56 @@
+<%- include('../partials/dashboard-start', { crumb: 'Transactions' }) %>
+<div class="page-head">
+  <div>
+    <h1>Transactions</h1>
+    <p>Every money movement observed, with its source and verification state. Gmail alerts are candidates only.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body tight">
+    <form method="get" action="/dashboard/transactions" class="filters">
+      <div class="field grow">
+        <label for="q">Search reference or order</label>
+        <input id="q" name="q" value="<%= filters.q %>" placeholder="UTR / provider reference / PAY-…">
+      </div>
+      <div class="field">
+        <label for="verification">Verification</label>
+        <select id="verification" name="verification">
+          <option value="">Any</option>
+          <% ['UNVERIFIED','PENDING_AUTHORITATIVE','VERIFIED','MANUALLY_VERIFIED','VERIFICATION_FAILED','REVIEW_REQUIRED'].forEach(function (v) { %>
+            <option value="<%= v %>" <%= filters.verification === v ? 'selected' : '' %>><%= v.replaceAll('_',' ') %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="field"><button class="btn btn-primary" type="submit">Apply</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <% if (!transactions.length) { %>
+    <div class="empty">No transactions match.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Reference</th><th>Order</th><th>Source</th><th class="right">Amount</th><th>State</th><th>Time</th></tr></thead>
+        <tbody>
+          <% transactions.forEach(function (t) { %>
+            <tr>
+              <td class="mono small"><%= t.providerTransactionReference %>
+                <div class="sub"><%= t.providerName %></div></td>
+              <td class="small"><% if (t.orderId) { %><a href="/dashboard/orders/<%= t.orderId %>"><%= t.orderId %></a><% } else { %><span class="muted">unassigned</span><% } %></td>
+              <td class="sub"><%= t.source.replaceAll('_',' ') %></td>
+              <td class="num"><%= formatMoney(t.amountPaise) %></td>
+              <td><span class="pill <%= t.verificationStatus === 'VERIFIED' ? 'pill-success' : t.verificationStatus === 'MANUALLY_VERIFIED' ? 'pill-info' : t.verificationStatus === 'REVIEW_REQUIRED' ? 'pill-danger' : 'pill-neutral' %>"><%= t.verificationStatus.replaceAll('_',' ') %></span>
+                <div class="sub"><%= t.transactionStatus %><%= t.creditedToOrder ? ' · credited' : '' %></div></td>
+              <td class="sub nowrap"><%= formatDate(t.createdAt) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination"><span>Page <%= page %> of <%= pages %></span></div>
+  <% } %>
+</div>
+<%- include('../partials/dashboard-end') %>

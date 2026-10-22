@@ -1,0 +1,98 @@
+<%- include('../partials/dashboard-start', { crumb: 'Admin console' }) %>
+<div class="page-head">
+  <div>
+    <h1>Administration</h1>
+    <p>Network health, provider onboarding and the reconciliation queue.</p>
+  </div>
+  <div class="row">
+    <a class="btn" href="/admin/security">Security</a>
+    <a class="btn btn-primary" href="/admin/providers">Provider config</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="label">Merchants</div><div class="value"><%= merchants.length %></div><div class="hint"><%= merchants.filter(function(m){return m.accountStatus==='ACTIVE'}).length %> active</div></div>
+  <div class="stat accent"><div class="label">Confirmed value</div><div class="value"><%= formatMoney(stats.confirmedValuePaise) %></div><div class="hint">All merchants</div></div>
+  <div class="stat <%= caseTotal > 0 ? 'alert' : '' %>"><div class="label">Open cases</div><div class="value"><%= caseTotal %></div><div class="hint">Human decisions required</div></div>
+  <div class="stat"><div class="label">Payment requests</div><div class="value"><%= stats.totalOrders.toLocaleString('en-IN') %></div><div class="hint"><%= stats.reviewRequired %> in review</div></div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Merchants</h2><a class="small" href="/admin/merchants">Manage</a></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Merchant</th><th>Status</th><th class="right">Orders</th><th class="right">Confirmed</th><th></th></tr></thead>
+          <tbody>
+            <% merchants.forEach(function (m) { %>
+              <tr>
+                <td><div class="primary"><%= m.businessName %></div><div class="sub mono"><%= m.merchantCode %></div></td>
+                <td><span class="pill <%= m.accountStatus === 'ACTIVE' ? 'pill-success' : m.accountStatus === 'SUSPENDED' ? 'pill-danger' : 'pill-neutral' %>"><%= m.accountStatus %></span></td>
+                <td class="num"><%= m.orders %></td>
+                <td class="num"><%= formatMoney(m.confirmedValuePaise) %></td>
+                <td class="right"><a class="btn btn-sm" href="/dashboard?merchant=<%= m.id %>">View</a></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Reconciliation queue</h2><a class="small" href="/admin/reconciliation">All</a></div>
+      <% if (!cases.length) { %>
+        <div class="empty">Queue is clear.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Reason</th><th>Detail</th><th></th></tr></thead>
+            <tbody>
+              <% cases.forEach(function (c) { %>
+                <tr>
+                  <td><span class="pill pill-warn"><%= c.reason.replaceAll('_',' ') %></span></td>
+                  <td class="sub"><%= truncate(c.detail, 80) %></td>
+                  <td class="right"><a class="btn btn-sm" href="/dashboard/review/<%= c.id %>">Review</a></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h3>Providers</h3></div>
+      <div class="card-body tight">
+        <% providers.forEach(function (p) { %>
+          <% var cfg = configs.find(function (c) { return c.providerName === p.name; }); %>
+          <div class="provider-item" style="margin-bottom:.4rem">
+            <div><div class="name"><%= p.displayName %></div>
+              <div class="caps"><%= p.simulated ? 'test double' : p.configured ? (cfg && cfg.lastHealthStatus ? 'health ' + cfg.lastHealthStatus : 'credentials present') : 'not configured' %></div></div>
+            <span class="pill <%= cfg && cfg.enabled ? 'pill-success' : 'pill-neutral' %>"><%= cfg && cfg.enabled ? 'on' : 'off' %></span>
+          </div>
+        <% }); %>
+        <a class="small" href="/admin/providers" style="display:inline-block;margin-top:.4rem">Configure</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Last job runs</h3></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Job</th><th>Status</th><th>When</th></tr></thead>
+          <tbody>
+            <% runs.forEach(function (r) { %>
+              <tr><td class="small"><%= r.runType.replaceAll('_',' ').toLowerCase() %></td>
+                <td><span class="pill <%= r.status === 'OK' ? 'pill-success' : r.status === 'FAILED' ? 'pill-danger' : 'pill-warn' %>"><%= r.status %></span></td>
+                <td class="sub nowrap"><%= relativeTime(r.startedAt) %></td></tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

@@ -1,0 +1,6 @@
+<% if (typeof notice !== 'undefined' && notice) { %>
+  <div class="alert <%= notice.tone %>" role="status"><div><%= notice.text %></div></div>
+<% } %>
+<% if (typeof errorNotice !== 'undefined' && errorNotice) { %>
+  <div class="alert error" role="alert"><div><%= errorNotice %></div></div>
+<% } %>

@@ -1,0 +1,169 @@
+<%- include('../partials/dashboard-start', { crumb: 'Overview' }) %>
+
+<div class="page-head">
+  <div>
+    <h1><%= merchant ? merchant.businessName : 'Network overview' %></h1>
+    <p><%= merchant ? 'Every status below is backed by provider evidence or an audited human decision.' : 'Cross-merchant operational view. Use the merchant filter on each page to narrow down.' %></p>
+  </div>
+  <div class="row">
+    <a class="btn" href="/dashboard/export.csv">Export CSV</a>
+    <a class="btn btn-primary" href="/dashboard/orders">All payment requests</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat">
+    <div class="label">Payment requests</div>
+    <div class="value"><%= stats.totalOrders.toLocaleString('en-IN') %></div>
+    <div class="hint">All time</div>
+  </div>
+  <div class="stat accent">
+    <div class="label">Confirmed value</div>
+    <div class="value"><%= formatMoney(stats.confirmedValuePaise) %></div>
+    <div class="hint"><%= stats.confirmedPaid %> paid · <%= stats.latePayments %> late</div>
+  </div>
+  <div class="stat">
+    <div class="label">Awaiting payment</div>
+    <div class="value"><%= stats.pending %></div>
+    <div class="hint">Created, pending or verifying</div>
+  </div>
+  <div class="stat <%= stats.reviewRequired > 0 ? 'alert' : '' %>">
+    <div class="label">Needs review</div>
+    <div class="value"><%= stats.reviewRequired %></div>
+    <div class="hint"><%= openCaseCount %> open case<%= openCaseCount === 1 ? '' : 's' %></div>
+  </div>
+  <div class="stat">
+    <div class="label">Expired</div>
+    <div class="value"><%= stats.expired %></div>
+    <div class="hint">Still reconciled for late payments</div>
+  </div>
+  <div class="stat">
+    <div class="label">Refunded value</div>
+    <div class="value"><%= formatMoney(stats.refundedValuePaise) %></div>
+    <div class="hint"><%= stats.failed %> failed requests</div>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <h2>Recent payment requests</h2>
+        <a class="small" href="/dashboard/orders">View all</a>
+      </div>
+      <% if (!recentOrders.length) { %>
+        <div class="empty">No payment requests yet.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Order</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead>
+            <tbody>
+              <% recentOrders.forEach(function (o) { %>
+                <tr>
+                  <td><a class="primary" href="/dashboard/orders/<%= o.orderId %>"><%= o.orderId %></a>
+                    <div class="sub"><%= o.providerName %></div></td>
+                  <td class="num"><%= formatMoney(o.amountPaise) %></td>
+                  <td><span class="<%= statusClass(o.status) %>"><%= statusLabel(o.status) %></span></td>
+                  <td class="sub nowrap"><%= relativeTime(o.createdAt) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Open review cases</h2>
+        <a class="small" href="/dashboard/review">Queue</a>
+      </div>
+      <% if (!openCases.length) { %>
+        <div class="empty">
+          <div>Nothing needs a human right now.</div>
+          <div class="small muted">Ambiguous, mismatched or unverifiable payments appear here.</div>
+        </div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Reason</th><th>Merchant</th><th>Created</th><th></th></tr></thead>
+            <tbody>
+              <% openCases.forEach(function (c) { %>
+                <tr>
+                  <td><span class="pill pill-warn"><%= c.reason.replaceAll('_', ' ') %></span></td>
+                  <td class="sub mono"><%= c.merchantId.slice(0, 8) %></td>
+                  <td class="sub nowrap"><%= relativeTime(c.createdAt) %></td>
+                  <td class="right"><a class="btn btn-sm" href="/dashboard/review/<%= c.id %>">Review</a></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h3>Integrations</h3></div>
+      <div class="card-body tight">
+        <div class="provider-list">
+          <% providers.forEach(function (p) { %>
+            <% var cfg = providerConfigs.find(function (c) { return c.providerName === p.name; }); %>
+            <div class="provider-item">
+              <div>
+                <div class="name"><%= p.displayName %></div>
+                <div class="caps">
+                  <% if (p.simulated) { %>Test double — no real money<% } else if (!p.configured) { %>Credentials missing<% } else { %>Ready · unverified integration<% } %>
+                  <% if (cfg && cfg.lastHealthStatus) { %> · health <%= cfg.lastHealthStatus %><% } %>
+                </div>
+              </div>
+              <span class="pill <%= cfg && cfg.enabled ? 'pill-success' : 'pill-neutral' %>">
+                <%= cfg && cfg.enabled ? 'Enabled' : 'Disabled' %>
+              </span>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h3>Gmail monitoring</h3></div>
+      <div class="card-body tight">
+        <% if (!gmail) { %>
+          <p class="small muted">Not connected. Gmail alerts are optional and never treated as payment proof.</p>
+          <a class="btn btn-sm" href="/dashboard/gmail">Connect Gmail</a>
+        <% } else { %>
+          <dl class="kv">
+            <dt>Mailbox</dt><dd><%= gmail.providerEmail %></dd>
+            <dt>Status</dt><dd><span class="pill <%= gmail.connectionStatus === 'CONNECTED' ? 'pill-success' : 'pill-warn' %>"><%= gmail.connectionStatus %></span></dd>
+            <dt>Last sync</dt><dd><%= gmail.lastSyncAt ? relativeTime(gmail.lastSyncAt) : 'never' %></dd>
+          </dl>
+          <a class="small" href="/dashboard/gmail" style="display:inline-block;margin-top:.6rem">Manage</a>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (runs.length) { %>
+      <div class="card">
+        <div class="card-head"><h3>Recent jobs</h3></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Job</th><th>Status</th><th>Changed</th></tr></thead>
+            <tbody>
+              <% runs.forEach(function (r) { %>
+                <tr>
+                  <td class="sub"><%= r.runType.replaceAll('_',' ').toLowerCase() %></td>
+                  <td><span class="pill <%= r.status === 'OK' ? 'pill-success' : r.status === 'FAILED' ? 'pill-danger' : 'pill-warn' %>"><%= r.status %></span></td>
+                  <td class="num"><%= r.itemsChanged %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/dashboard-end') %>

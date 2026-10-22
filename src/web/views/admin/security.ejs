@@ -1,0 +1,82 @@
+<%- include('../partials/dashboard-start', { crumb: 'Security' }) %>
+<div class="page-head">
+  <div>
+    <h1>Security</h1>
+    <p>Authentication events, rate limiting and configuration posture.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Configuration posture</h2></div>
+      <div class="card-body">
+        <dl class="kv">
+          <dt>Production mode</dt><dd><span class="pill <%= config.isProduction ? 'pill-success' : 'pill-warn' %>"><%= config.isProduction ? 'yes' : 'no' %></span></dd>
+          <dt>HTTPS cookies</dt><dd><span class="pill <%= config.cookieSecure ? 'pill-success' : 'pill-warn' %>"><%= config.cookieSecure ? 'secure' : 'not secure (dev only)' %></span></dd>
+          <dt>Sandbox provider</dt><dd><%= config.allowSandboxProvider ? 'enabled (must be off in production)' : 'disabled' %></dd>
+          <dt>Key versions</dt><dd><%= config.encryptionKeys.map(function (k) { return k.version; }).join(', ') %></dd>
+          <dt>Session hashing</dt><dd>SHA-256 + server secret; raw tokens never stored</dd>
+          <dt>Audit retention</dt><dd><%= config.retention.auditLogsDays %> days</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Failed sign-ins</h2></div>
+      <% if (!failedLogins.length) { %>
+        <div class="empty">No failed sign-ins recorded.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>When</th><th>Actor</th><th>Metadata</th></tr></thead>
+            <tbody>
+              <% failedLogins.forEach(function (r) { %>
+                <tr><td class="sub nowrap"><%= formatDate(r.createdAt) %></td>
+                  <td class="small mono"><%= r.actorId ? r.actorId.slice(0,8) : 'unknown' %></td>
+                  <td class="small mono"><%= JSON.stringify(r.sanitizedMetadata) %></td></tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Active rate limits</h2></div>
+      <% if (!rateLimits.length) { %>
+        <div class="empty">No counters active.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Bucket</th><th>Key</th><th class="right">Count</th><th>Window</th></tr></thead>
+            <tbody>
+              <% rateLimits.forEach(function (r) { %>
+                <tr><td class="small"><%= r.bucket %></td><td class="mono small"><%= r.keyPrefix %>…</td>
+                  <td class="num"><%= r.count %></td><td class="sub nowrap"><%= relativeTime(r.windowStart) %></td></tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Recent session events</h2></div>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Action</th><th>When</th></tr></thead>
+          <tbody>
+            <% sessionEvents.forEach(function (r) { %>
+              <tr><td><span class="pill <%= r.action.includes('FAILED') ? 'pill-danger' : 'pill-success' %>"><%= r.action %></span></td>
+                <td class="sub nowrap"><%= formatDate(r.createdAt) %></td></tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

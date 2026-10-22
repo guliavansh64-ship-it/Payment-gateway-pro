@@ -1,0 +1,46 @@
+<%- include('../partials/dashboard-start', { crumb: 'Manual review' }) %>
+<div class="page-head">
+  <div>
+    <h1>Manual review</h1>
+    <p>Payments the engine refuses to auto-assign. Approving here is a manual confirmation — it is recorded as
+      <span class="pill pill-info">MANUAL_ENTRY</span> and never masquerades as provider verification.</p>
+  </div>
+</div>
+
+<div class="alert info">
+  <div><strong>Why items land here</strong>
+    Two orders share the amount, a transaction has no usable reference, the received amount differs,
+    the payee account is different, or a notification could not be verified with a provider.</div>
+</div>
+
+<div class="card">
+  <% if (!cases.length) { %>
+    <div class="empty">
+      <div>Queue is clear.</div>
+      <div class="small muted">The reconciliation worker is still running in the background.</div>
+    </div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>Reason</th><th>Detail</th><th>Possible orders</th><th>Age</th><th></th></tr></thead>
+        <tbody>
+          <% cases.forEach(function (c) { %>
+            <tr>
+              <td><span class="pill pill-warn"><%= c.reason.replaceAll('_',' ') %></span></td>
+              <td class="sub" style="max-width:420px"><%= truncate(c.detail, 140) %></td>
+              <td class="sub">
+                <% if (c.possibleOrderIds.length) { %>
+                  <% c.possibleOrderIds.slice(0,3).forEach(function (id) { %><div class="mono"><%= id %></div><% }); %>
+                  <% if (c.possibleOrderIds.length > 3) { %><div>+<%= c.possibleOrderIds.length - 3 %> more</div><% } %>
+                <% } else { %>—<% } %>
+              </td>
+              <td class="sub nowrap"><%= relativeTime(c.createdAt) %></td>
+              <td class="right"><a class="btn btn-sm btn-primary" href="/dashboard/review/<%= c.id %>">Review</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+<%- include('../partials/dashboard-end') %>

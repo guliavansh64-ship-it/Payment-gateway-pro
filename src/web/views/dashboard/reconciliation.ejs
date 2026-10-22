@@ -1,0 +1,68 @@
+<%- include('../partials/dashboard-start', { crumb: 'Reconciliation' }) %>
+<div class="page-head">
+  <div>
+    <h1>Reconciliation</h1>
+    <p>Background jobs, the open review queue and how late payments are handled.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h2>Open cases</h2><span class="small muted"><%= total %> open</span></div>
+      <% if (!cases.length) { %>
+        <div class="empty">No open reconciliation cases.</div>
+      <% } else { %>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Reason</th><th>Detail</th><th></th></tr></thead>
+            <tbody>
+              <% cases.forEach(function (c) { %>
+                <tr>
+                  <td><span class="pill pill-warn"><%= c.reason.replaceAll('_',' ') %></span></td>
+                  <td class="sub"><%= truncate(c.detail, 90) %></td>
+                  <td class="right"><a class="btn btn-sm" href="/dashboard/review/<%= c.id %>">Open</a></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="stack">
+    <% if (runs.length) { %>
+      <div class="card">
+        <div class="card-head"><h3>Recent job runs</h3></div>
+        <div class="table-wrap">
+          <table class="data">
+            <thead><tr><th>Job</th><th>Status</th><th class="right">Checked</th><th class="right">Changed</th><th>Finished</th></tr></thead>
+            <tbody>
+              <% runs.forEach(function (r) { %>
+                <tr>
+                  <td class="small"><%= r.runType.replaceAll('_',' ').toLowerCase() %></td>
+                  <td><span class="pill <%= r.status === 'OK' ? 'pill-success' : r.status === 'FAILED' ? 'pill-danger' : 'pill-warn' %>"><%= r.status %></span></td>
+                  <td class="num"><%= r.itemsChecked %></td>
+                  <td class="num"><%= r.itemsChanged %></td>
+                  <td class="sub nowrap"><%= r.finishedAt ? relativeTime(r.finishedAt) : 'running' %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } %>
+
+    <div class="card">
+      <div class="card-head"><h3>Policy</h3></div>
+      <div class="card-body small muted">
+        <p><strong>Expiry</strong> — an unpaid order moves to EXPIRED when the window closes. Reconciliation continues.</p>
+        <p><strong>Late payments</strong> — a confirmed payment after expiry becomes LATE_PAYMENT and enters review.
+          It is never ignored and never silently marked PAID.</p>
+        <p style="margin-bottom:0"><strong>Provider outage</strong> — no status change. The worker retries; nothing is guessed.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

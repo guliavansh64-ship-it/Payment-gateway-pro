@@ -1,0 +1,80 @@
+<%- include('../partials/dashboard-start', { crumb: 'Payment requests' }) %>
+
+<div class="page-head">
+  <div>
+    <h1>Payment requests</h1>
+    <p><%= total.toLocaleString('en-IN') %> request<%= total === 1 ? '' : 's' %>. Search by order ID, provider payment ID or transaction reference.</p>
+  </div>
+  <a class="btn" href="/dashboard/export.csv">Export CSV</a>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body tight">
+    <form method="get" action="/dashboard/orders" class="filters">
+      <div class="field grow">
+        <label for="q">Search</label>
+        <input id="q" name="q" value="<%= filters.q %>" placeholder="PAY-… / pay_… / UTR">
+      </div>
+      <div class="field">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="">All statuses</option>
+          <% statuses.forEach(function (s) { %>
+            <option value="<%= s %>" <%= filters.status.includes(s) ? 'selected' : '' %>><%= statusLabel(s) %></option>
+          <% }); %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="from">From</label>
+        <input id="from" name="from" type="date" value="<%= filters.from %>">
+      </div>
+      <div class="field">
+        <label for="to">To</label>
+        <input id="to" name="to" type="date" value="<%= filters.to %>">
+      </div>
+      <div class="field"><button class="btn btn-primary" type="submit">Apply</button></div>
+      <div class="field"><a class="btn btn-ghost" href="/dashboard/orders">Reset</a></div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <% if (!orders.length) { %>
+    <div class="empty">No payment requests match these filters.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead>
+          <tr>
+            <th>Order</th><th>Method</th><th class="right">Amount</th><th class="right">Paid</th>
+            <th>Status</th><th>Verification</th><th>Created</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% orders.forEach(function (o) { %>
+            <tr>
+              <td>
+                <a class="primary mono" href="/dashboard/orders/<%= o.orderId %>"><%= o.orderId %></a>
+                <div class="sub"><%= o.description ? truncate(o.description, 40) : '—' %></div>
+              </td>
+              <td class="sub"><%= o.paymentMethod.replace('_',' ') %><br><%= o.providerName %></td>
+              <td class="num"><%= formatMoney(o.amountPaise) %></td>
+              <td class="num"><%= formatMoney(o.paidAmountPaise) %></td>
+              <td><span class="<%= statusClass(o.status) %>"><%= statusLabel(o.status) %></span></td>
+              <td class="sub"><%= o.verificationStatus.replaceAll('_',' ').toLowerCase() %></td>
+              <td class="sub nowrap"><%= formatDate(o.createdAt) %></td>
+              <td class="right"><a class="btn btn-sm" href="/dashboard/orders/<%= o.orderId %>">Open</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span>Page <%= page %> of <%= pages %></span>
+      <% if (page > 1) { %><a href="/dashboard/orders<%= queryString({ q: filters.q, status: filters.status[0], from: filters.from, to: filters.to, page: page - 1 }) %>">Previous</a><% } %>
+      <% if (page < pages) { %><a href="/dashboard/orders<%= queryString({ q: filters.q, status: filters.status[0], from: filters.from, to: filters.to, page: page + 1 }) %>">Next</a><% } %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/dashboard-end') %>

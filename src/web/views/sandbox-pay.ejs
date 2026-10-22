@@ -1,0 +1,43 @@
+<%- include('partials/head', { title }) %>
+<body class="public pay-body">
+<header class="public-nav narrow">
+  <span class="brand">
+    <span class="brand-mark" style="background:#b45309">SBX</span>
+    <span><span class="brand-name">Sandbox simulator</span><span class="brand-sub">Test double · no real money</span></span>
+  </span>
+  <a class="btn btn-secondary btn-sm" href="/pay/<%= order.orderId %>?t=<%= encodeURIComponent(token) %>">Back to payment page</a>
+</header>
+<main class="pay-main">
+  <section class="card pay-card">
+    <div class="alert info">
+      <div>
+        This screen exists only in local development and automated tests. It records a
+        simulated provider payment and delivers a correctly signed webhook through the
+        real ingestion pipeline. It cannot be enabled in production.
+      </div>
+    </div>
+    <h1>Simulate a payment outcome</h1>
+    <p class="hint">
+      Order <code><%= order.orderId %></code> · <%= formatMoney(order.amountPaise) %> ·
+      current status <span class="<%= statusClass(order.status) %>"><%= statusLabel(order.status) %></span>
+    </p>
+    <form method="post" action="/sandbox/simulate" class="stacked">
+      <input type="hidden" name="order_id" value="<%= order.orderId %>">
+      <input type="hidden" name="t" value="<%= token %>">
+      <div class="grid-2">
+        <button class="btn btn-primary" name="scenario" value="success" type="submit">Successful payment (exact amount)</button>
+        <button class="btn btn-secondary" name="scenario" value="underpay" type="submit">Underpayment (₹1 less)</button>
+        <button class="btn btn-secondary" name="scenario" value="overpay" type="submit">Overpayment (+₹50)</button>
+        <button class="btn btn-secondary" name="scenario" value="failure" type="submit">Provider failure</button>
+        <button class="btn btn-ghost" name="scenario" value="pending" type="submit">Provider says pending</button>
+      </div>
+    </form>
+    <p class="hint">
+      The simulator signs the event with a domain-separated sandbox key. The server verifies the
+      signature before storing anything, exactly as it does for Razorpay and Cashfree.
+    </p>
+  </section>
+</main>
+<%- include('partials/foot') %>
+</body>
+</html>

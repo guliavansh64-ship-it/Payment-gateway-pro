@@ -1,0 +1,43 @@
+<%- include('../partials/dashboard-start', { crumb: 'Audit log' }) %>
+<div class="page-head">
+  <div>
+    <h1>Audit log</h1>
+    <p>Append-only. Database triggers reject updates and deletes; retention is the only purge path.</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1rem">
+  <div class="card-body tight">
+    <form method="get" class="filters">
+      <div class="field grow">
+        <label for="action">Action contains</label>
+        <input id="action" name="action" value="<%= actionFilter %>" placeholder="LOGIN_FAILED">
+      </div>
+      <div class="field"><button class="btn btn-primary" type="submit">Filter</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <% if (!rows.length) { %>
+    <div class="empty">No audit entries match.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table class="data">
+        <thead><tr><th>When</th><th>Action</th><th>Resource</th><th>Actor</th><th>Metadata</th></tr></thead>
+        <tbody>
+          <% rows.forEach(function (r) { %>
+            <tr>
+              <td class="sub nowrap"><%= formatDate(r.createdAt) %></td>
+              <td><span class="pill <%= r.action.includes('FAILED') || r.action.includes('REJECTED') ? 'pill-danger' : r.action.includes('APPROVED') || r.action.includes('CONNECTED') ? 'pill-success' : 'pill-neutral' %>"><%= r.action %></span></td>
+              <td class="small"><%= r.resourceType %><div class="sub mono"><%= r.resourceId ? truncate(r.resourceId, 26) : '—' %></div></td>
+              <td class="small"><%= r.actorType.toLowerCase() %><div class="sub mono"><%= r.actorId ? r.actorId.slice(0,8) : 'system' %></div></td>
+              <td class="small mono" style="max-width:340px;word-break:break-word"><%= JSON.stringify(r.sanitizedMetadata) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+<%- include('../partials/dashboard-end') %>

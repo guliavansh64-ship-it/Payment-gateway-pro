@@ -1,0 +1,96 @@
+<%- include('../partials/dashboard-start', { crumb: 'Gmail alerts' }) %>
+<div class="page-head">
+  <div>
+    <h1>Gmail transaction alerts</h1>
+    <p>Optional supplementary signal. Alerts can trigger a provider check; they can never mark an order paid.</p>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="stack">
+    <div class="card">
+      <div class="card-head">
+        <h2>Connection</h2>
+        <% if (connection) { %><span class="pill <%= connection.connectionStatus === 'CONNECTED' ? 'pill-success' : 'pill-warn' %>"><%= connection.connectionStatus %></span><% } %>
+      </div>
+      <div class="card-body">
+        <% if (errorCode) { %>
+          <div class="alert error"><div>Connection failed: <%= errorCode.replaceAll('-',' ') %>. Try again.</div></div>
+        <% } %>
+        <% if (!connection) { %>
+          <p class="muted">No mailbox is connected for your user.</p>
+          <% if (!googleConfigured) { %>
+            <div class="alert warn"><div><strong>Google OAuth is not configured</strong>
+              Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_OAUTH_REDIRECT_URI (see .env.example).</div></div>
+          <% } %>
+          <a class="btn <%= googleConfigured ? 'btn-primary' : '' %> btn-block" href="/oauth/google/start"
+             <%= googleConfigured ? '' : 'aria-disabled="true" style="pointer-events:none;opacity:.5"' %>>
+            Connect Gmail with Google
+          </a>
+          <p class="small muted" style="margin-top:.7rem">
+            Scope requested: <span class="mono">gmail.readonly</span>. This is a Google restricted scope; production use
+            requires OAuth verification and a security assessment. We never see your Google password.
+          </p>
+        <% } else { %>
+          <dl class="kv">
+            <dt>Mailbox</dt><dd><%= connection.providerEmail %></dd>
+            <dt>Connected</dt><dd><%= formatDate(connection.createdAt) %></dd>
+            <dt>Last sync</dt><dd><%= connection.lastSyncAt ? formatDate(connection.lastSyncAt) : 'never' %></dd>
+            <dt>History cursor</dt><dd class="mono small"><%= connection.historyCursor ? connection.historyCursor.slice(0, 16) + '…' : 'not set' %></dd>
+            <dt>Scopes</dt><dd class="small"><%= connection.grantedScopes.join(', ') || '—' %></dd>
+            <dt>Failures</dt><dd><%= connection.consecutiveFailures %></dd>
+            <% if (connection.lastError) { %><dt>Last error</dt><dd class="small"><%= connection.lastError %></dd><% } %>
+          </dl>
+          <form method="post" action="/dashboard/gmail/disconnect" style="margin-top:1rem"
+                data-confirm="Disconnect Gmail and destroy the stored refresh token?">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-danger btn-block" type="submit">Disconnect and revoke</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Sender allow-list</h2></div>
+      <div class="card-body">
+        <% if (!allowedDomains.length) { %>
+          <div class="alert warn"><div><strong>No sender domains configured</strong>
+            Monitoring is disabled until an operator sets <span class="mono">GMAIL_ALLOWED_SENDER_DOMAINS</span>.
+            The platform never guesses which senders to trust.</div></div>
+        <% } else { %>
+          <div class="row">
+            <% allowedDomains.forEach(function (d) { %><span class="pill pill-neutral mono"><%= d %></span><% }); %>
+          </div>
+          <p class="small muted" style="margin-top:.7rem">
+            The full sender <em>address</em> is validated against these domains. Display names are ignored.
+            Forwarded alerts are down-weighted and always reviewed.
+          </p>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack">
+    <div class="card">
+      <div class="card-head"><h3>What is read and stored</h3></div>
+      <div class="card-body small">
+        <ul style="padding-left:1.1rem;margin:0 0 .8rem;color:var(--muted)">
+          <li>Only messages matching the allow-listed senders, last 7 days.</li>
+          <li>Amount, direction, status wording, UTR/reference, VPAs.</li>
+          <li>The Gmail message id, a payload hash and the parsed fields.</li>
+        </ul>
+        <p class="small muted" style="margin-bottom:0">The original message body and subject are never persisted.</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3>Known limitations</h3></div>
+      <div class="card-body small muted">
+        <p>Not every bank or UPI app sends transaction email. Formats change without notice, notifications can be
+        delayed by minutes, and forwarded mail is easy to spoof.</p>
+        <p style="margin-bottom:0">Email extraction therefore produces a candidate for review. Direct UPI transfers
+        (no provider) always require an operator to confirm against the bank statement.</p>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/dashboard-end') %>

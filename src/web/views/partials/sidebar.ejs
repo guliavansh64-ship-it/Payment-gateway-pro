@@ -1,0 +1,75 @@
+<%- include('icons') %>
+<aside class="sidebar">
+  <a href="/dashboard" class="brand" style="text-decoration:none">
+    <span class="brand-mark">UV</span>
+    <span>
+      <span class="brand-name"><%= appName %></span><br>
+      <span class="brand-sub">Payment integrity</span>
+    </span>
+  </a>
+
+  <div class="nav-group">Operations</div>
+  <nav class="nav" id="primary-nav">
+    <a href="/dashboard" class="<%= currentPath === '/dashboard' ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-home"/></svg> Overview
+    </a>
+    <a href="/dashboard/orders" class="<%= currentPath.startsWith('/dashboard/orders') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-orders"/></svg> Payment requests
+    </a>
+    <a href="/dashboard/transactions" class="<%= currentPath.startsWith('/dashboard/transactions') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-tx"/></svg> Transactions
+    </a>
+    <a href="/dashboard/review" class="<%= currentPath.startsWith('/dashboard/review') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-review"/></svg> Manual review
+    </a>
+    <a href="/dashboard/reconciliation" class="<%= currentPath.startsWith('/dashboard/reconciliation') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-scale"/></svg> Reconciliation
+    </a>
+
+    <div class="nav-group">Integrations</div>
+    <a href="/dashboard/gmail" class="<%= currentPath.startsWith('/dashboard/gmail') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-gmail"/></svg> Gmail alerts
+    </a>
+    <a href="/dashboard/providers" class="<%= currentPath.startsWith('/dashboard/providers') ? 'active' : '' %>">
+      <svg class="icon"><use href="#i-plug"/></svg> Providers
+    </a>
+
+    <% if (user && (user.role === 'ADMIN' || user.role === 'AUDITOR')) { %>
+      <div class="nav-group">Administration</div>
+      <% if (user.role === 'ADMIN') { %>
+        <a href="/admin" class="<%= currentPath === '/admin' ? 'active' : '' %>">
+          <svg class="icon"><use href="#i-shield"/></svg> Admin console
+        </a>
+        <a href="/admin/merchants" class="<%= currentPath.startsWith('/admin/merchants') ? 'active' : '' %>">
+          <svg class="icon"><use href="#i-store"/></svg> Merchants
+        </a>
+        <a href="/admin/providers" class="<%= currentPath.startsWith('/admin/providers') ? 'active' : '' %>">
+          <svg class="icon"><use href="#i-plug"/></svg> Provider config
+        </a>
+        <a href="/admin/users" class="<%= currentPath.startsWith('/admin/users') ? 'active' : '' %>">
+          <svg class="icon"><use href="#i-users"/></svg> Users
+        </a>
+        <a href="/admin/security" class="<%= currentPath.startsWith('/admin/security') ? 'active' : '' %>">
+          <svg class="icon"><use href="#i-shield"/></svg> Security
+        </a>
+      <% } %>
+      <a href="/dashboard/audit" class="<%= currentPath.startsWith('/dashboard/audit') || currentPath.startsWith('/admin/audit') ? 'active' : '' %>">
+        <svg class="icon"><use href="#i-orders"/></svg> Audit log
+      </a>
+    <% } %>
+  </nav>
+
+  <div class="sidebar-foot">
+    <div class="who">
+      <span class="avatar"><%= initials(user ? user.name : '?') %></span>
+      <span>
+        <span class="who-name"><%= user ? user.name : 'Guest' %></span><br>
+        <span class="who-role"><%= user ? user.role.replace('_', ' ').toLowerCase() : '' %></span>
+      </span>
+    </div>
+    <form method="post" action="/logout">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="link-button" type="submit">Sign out</button>
+    </form>
+  </div>
+</aside>

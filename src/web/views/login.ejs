@@ -1,0 +1,36 @@
+<%- include('partials/head', { title }) %>
+<body class="auth-body">
+<main class="auth-wrap">
+  <section class="card auth-card">
+    <a class="brand" href="/">
+      <span class="brand-mark">UV</span>
+      <span>
+        <span class="brand-name"><%= appName %></span>
+        <span class="brand-sub">Payment integrity</span>
+      </span>
+    </a>
+    <h1>Sign in</h1>
+    <p class="hint">Merchant and operations access. Customers never need an account to pay.</p>
+
+    <% if (error) { %><div class="alert error" role="alert"><div><%= error %></div></div><% } %>
+
+    <form method="post" action="/login" class="stacked">
+      <input type="hidden" name="_csrf" value="<%= preauthToken %>">
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label for="email">Work email</label>
+        <input id="email" name="email" type="email" autocomplete="username" required value="<%= email %>">
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required minlength="12">
+      </div>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+
+    <p class="hint">
+      Accounts are provisioned by an administrator. Failed attempts are rate-limited and logged.
+    </p>
+  </section>
+</main>
+<%- include('partials/foot') %>

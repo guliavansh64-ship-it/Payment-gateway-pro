@@ -1,0 +1,111 @@
+<%- include('partials/head', { title }) %>
+<body class="public">
+<header class="public-nav">
+  <a class="brand" href="/">
+    <span class="brand-mark">UV</span>
+    <span>
+      <span class="brand-name"><%= appName %></span>
+      <span class="brand-sub">Payment integrity</span>
+    </span>
+  </a>
+  <nav class="public-links">
+    <a href="#how">How it works</a>
+    <a href="/login">Merchant sign in</a>
+  </nav>
+</header>
+
+<main class="public-main">
+  <section class="hero">
+    <div>
+      <p class="eyebrow">UPI collections · verified settlement</p>
+      <h1>Accept UPI payments.<br>Only trust what the bank confirms.</h1>
+      <p class="lede">
+        UPI Verify creates a unique payment request for every order, shows a static or
+        dynamic UPI QR, and marks an order paid <strong>only</strong> when an authorised
+        payment provider or acquiring bank confirms the money arrived.
+      </p>
+      <p class="lede small">
+        Email alerts from your bank are used as a signal to investigate — never as proof of payment.
+        Ambiguous payments go to a human review queue instead of being guessed.
+      </p>
+
+      <% if (sandboxEnabled) { %>
+      <form class="card demo-form" method="post" action="/pay/new">
+        <div class="card-head">
+          <h2>Try the flow in sandbox</h2>
+          <span class="pill pill-warn"><span class="dot"></span>Simulated · no real money</span>
+        </div>
+        <% if (demoError) { %><div class="alert error"><div><%= demoError %></div></div><% } %>
+        <div class="grid-3">
+          <div class="field">
+            <label for="amount">Amount (INR)</label>
+            <input id="amount" name="amount" inputmode="decimal" placeholder="499.00" value="499.00" required>
+            <p class="hint">Stored as integer paise. Never a float.</p>
+          </div>
+          <div class="field">
+            <label for="merchant_id">Merchant</label>
+            <select id="merchant_id" name="merchant_id">
+              <% merchants.forEach(function (m) { %>
+                <option value="<%= m.id %>"><%= m.businessName %><% if (m.upi) { %> · <%= m.upi %><% } %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="description">What is it for?</label>
+            <input id="description" name="description" maxlength="200" placeholder="Order #1042">
+          </div>
+        </div>
+        <div class="row between">
+          <p class="hint">Payment link expires in <%= defaultExpiryMinutes %> minutes.</p>
+          <button class="btn btn-primary" type="submit">Create payment request</button>
+        </div>
+      </form>
+      <% } else { %>
+      <div class="callout">
+        <strong>Sandbox is off.</strong>
+        This deployment collects real payments only through providers you have onboarded,
+        or through a verified merchant UPI ID configured in the dashboard.
+        <a href="/login">Sign in</a> to create a payment request.
+      </div>
+      <% } %>
+    </div>
+
+    <aside class="card hero-side">
+      <h2>Provider readiness</h2>
+      <ul class="provider-list">
+        <% providers.forEach(function (p) { %>
+          <li>
+            <div>
+              <strong><%= p.displayName %></strong>
+              <span class="hint"><%= p.simulated ? 'Test double — cannot move money' : (p.configured ? 'Configured' : 'Not configured') %></span>
+            </div>
+            <% if (p.simulated) { %>
+              <span class="pill pill-warn">Simulated</span>
+            <% } else if (p.configured) { %>
+              <span class="pill pill-success">Ready</span>
+            <% } else { %>
+              <span class="pill pill-neutral">Off</span>
+            <% } %>
+          </li>
+        <% }); %>
+      </ul>
+      <p class="hint">
+        “Ready” means credentials are present and the adapter is enabled. It is not a claim that the
+        provider has approved your account for live traffic.
+      </p>
+    </aside>
+  </section>
+
+  <section id="how" class="steps">
+    <h2>What happens between “pay” and “paid”</h2>
+    <ol>
+      <li><strong>Server-side order.</strong> A cryptographically random order ID and a fixed amount are stored before any instruction is shown.</li>
+      <li><strong>Pay in your own UPI app.</strong> We never ask for a PIN, OTP, bank password or card number.</li>
+      <li><strong>Signal arrives.</strong> The provider webhook, a provider status check, or a bank alert email creates a candidate transaction.</li>
+      <li><strong>Authoritative verification.</strong> The provider or acquiring bank must confirm amount, currency and payee for the order.</li>
+      <li><strong>Paid — or escalated.</strong> Exact matches become PAID. Anything ambiguous becomes a review case with the evidence attached.</li>
+    </ol>
+  </section>
+</main>
+
+<%- include('partials/foot') %>

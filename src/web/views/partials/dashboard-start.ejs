@@ -1,0 +1,20 @@
+<%- include('head') %>
+<body>
+<div class="shell">
+  <%- include('sidebar') %>
+  <div class="main">
+    <header class="topbar">
+      <div class="crumbs">
+        <a href="/dashboard">Dashboard</a>
+        <% if (typeof crumb !== 'undefined' && crumb) { %> <span aria-hidden="true">/</span> <strong><%= crumb %></strong><% } %>
+      </div>
+      <div class="row">
+        <% if (typeof merchant !== 'undefined' && merchant) { %>
+          <span class="pill pill-neutral"><span class="dot"></span><%= merchant.businessName %></span>
+        <% } else if (user) { %>
+          <span class="pill pill-info">All merchants</span>
+        <% } %>
+      </div>
+    </header>
+    <main class="content">
+      <%- include('alerts') %>
