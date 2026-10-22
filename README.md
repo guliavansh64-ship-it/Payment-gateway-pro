@@ -119,6 +119,10 @@ PROVISION_PASSWORD='…' npm run user:create -- \
 
 Health probes: `GET /healthz` (process), `GET /readyz` (database + migrations).
 
+Prefer Docker? `docker compose up --build` gives you the database and the app on
+<http://localhost:3000> with demo data. See [docs/demo.md](docs/demo.md) for a
+guided tour, scenarios to try, and reset instructions.
+
 ### Tests
 
 ```bash
@@ -301,6 +305,7 @@ The matrix mapping the 24 required scenarios to specific tests is in
 | Customer payment page | `src/web/routes/customer.ts`, `src/web/views/pay.ejs` |
 | Automated tests | `tests/unit/`, `tests/integration/`, [docs/testing.md](docs/testing.md) |
 | Local development | [README §3](#3-quick-start-local) and [docs/deployment.md](docs/deployment.md#local-development) |
+| Guided demo | [docs/demo.md](docs/demo.md) (Docker, bundled launcher, scenarios) |
 | Production deployment | [docs/deployment.md](docs/deployment.md#production) |
 | Security checklist | [docs/security.md](docs/security.md) |
 | Provider onboarding checklist | [docs/providers.md](docs/providers.md#onboarding-checklist) |

@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.github
+.pgdata
+tools
+coverage
+tests
+.env
+.env.*
+*.log
+docs
+README.md
+vitest.config.ts

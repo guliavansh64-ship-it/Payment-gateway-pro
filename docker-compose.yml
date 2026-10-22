@@ -1,0 +1,57 @@
+# ---------------------------------------------------------------------------
+# Self-contained demo stack: PostgreSQL + the payment platform.
+#
+#   docker compose up --build
+#   open http://localhost:3000
+#
+# Everything here is DEMO configuration: the sandbox (test-double) provider is
+# enabled, secrets are generated at container start, and no real money can move.
+# For a real deployment follow docs/deployment.md instead.
+# ---------------------------------------------------------------------------
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: payment_gateway
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app -d payment_gateway']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: '3000'
+      APP_URL: ${DEMO_APP_URL:-http://localhost:3000}
+      TRUST_PROXY: 'false'
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://app:app@db:5432/payment_gateway
+      PGSSLMODE: disable
+      # Demo-only secrets. They live in the container environment, are different
+      # on every machine, and must never be reused for a real deployment.
+      SESSION_SECRET: ${DEMO_SESSION_SECRET:-demo-session-secret-do-not-use-in-production-0123456789}
+      TOKEN_ENCRYPTION_KEYS: ${DEMO_TOKEN_KEYS:-v1:AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=}
+      COOKIE_SECURE: 'false'
+      COOKIE_SAMESITE: lax
+      ALLOW_SANDBOX_PROVIDER: 'true'
+      RUN_BACKGROUND_JOBS: 'true'
+      DEFAULT_ORDER_EXPIRY_MINUTES: '1440'
+      GMAIL_ALLOWED_SENDER_DOMAINS: hdfcbank.net,icicibank.com,alerts.razorpay.com
+      SEED_DEMO_DATA: 'true'
+    ports:
+      - '3000:3000'
+    restart: unless-stopped
+
+volumes:
+  db-data:
